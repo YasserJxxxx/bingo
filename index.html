@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Universal 90</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #27ae60; --bg: #f5f6fa; }
+        body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 10px; }
+        .header { background: white; padding: 20px; border-radius: 0 0 15px 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        
+        /* Estilo del Cartón */
+        .carton-box { background: white; border: 2px solid var(--primary); border-radius: 10px; width: 350px; padding: 10px; position: relative; }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        td { 
+            border: 1.5px solid #333; height: 40px; text-align: center; 
+            font-weight: bold; font-size: 1.2rem; cursor: pointer; 
+        }
+        .nulo { background-color: #dcdde1; cursor: default; }
+        
+        /* Marca de X */
+        .marcado { background-color: #fab1a0 !important; color: #c0392b; position: relative; }
+        .marcado::after { 
+            content: "X"; position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); font-size: 30px; opacity: 0.8; 
+        }
+
+        .btn { 
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; 
+            font-weight: bold; transition: 0.3s; margin: 5px;
+        }
+        .btn-gen { background: var(--primary); color: white; font-size: 1rem; }
+        .btn-down { background: var(--secondary); color: white; width: 100%; margin-top: 10px; }
+        
+        @media (max-width: 400px) { .carton-box { width: 95%; } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>Juego de Bingo (9x4)</h2>
+        <button class="btn btn-gen" onclick="crearNuevos()">Generar 10 Cartones Nuevos</button>
+        <p style="font-size: 0.8rem; color: #666;">Haz clic en los números para marcarlos antes o después de guardar.</p>
+    </div>
+
+    <div id="contenedor" class="grid"></div>
+
+    <script>
+        function generarLogica() {
+            // Crear rangos por columnas (1-9, 10-19... 80-90)
+            let bolsas = [];
+            for (let i = 0; i < 9; i++) {
+                let inicio = (i === 0) ? 1 : i * 10;
+                let fin = (i === 8) ? 90 : (i * 10) + 9;
+                let temp = [];
+                for (let n = inicio; n <= fin; n++) temp.push(n);
+                bolsas.push(temp.sort(() => Math.random() - 0.5));
+            }
+
+            let filas = Array.from({ length: 4 }, () => Array(9).fill(null));
+            
+            for (let f = 0; f < 4; f++) {
+                // Elegir 5 posiciones al azar por fila
+                let pos = [0,1,2,3,4,5,6,7,8].sort(() => Math.random() - 0.5).slice(0, 5);
+                pos.forEach(p => {
+                    if (bolsas[p].length > 0) filas[f][p] = bolsas[p].pop();
+                });
+            }
+            return filas;
+        }
+
+        function toggleMarca(e) {
+            if (e.innerText !== "") e.classList.toggle('marcado');
+        }
+
+        async function guardarImagen(id, n) {
+            const area = document.getElementById(id);
+            const canvas = await html2canvas(area, { backgroundColor: "#ffffff" });
+            const imagen = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = `bingo_carton_${n}.png`;
+            link.href = imagen;
+            link.click();
+        }
+
+        function crearNuevos() {
+            const cont = document.getElementById('contenedor');
+            cont.innerHTML = "";
+            for (let i = 1; i <= 10; i++) {
+                const matriz = generarLogica();
+                const idUnico = `c-${i}`;
+                let tablaHtml = `<div class="carton-box">
+                    <div id="${idUnico}" style="background:white; padding:5px;">
+                        <h3 style="margin:5px; color:#2c3e50">BINGO #${i}</h3>
+                        <table>`;
+                
+                matriz.forEach(fila => {
+                    tablaHtml += "<tr>";
+                    fila.forEach(num => {
+                        if (num === null) tablaHtml += "<td class='nulo'></td>";
+                        else tablaHtml += `<td onclick="toggleMarca(this)">${num}</td>`;
+                    });
+                    tablaHtml += "</tr>";
+                });
+
+                tablaHtml += `</table></div>
+                <button class="btn btn-down" onclick="guardarImagen('${idUnico}', ${i})">Descargar como Foto</button>
+                </div>`;
+                cont.innerHTML += tablaHtml;
+            }
+        }
+
+        window.onload = crearNuevos;
+    </script>
+</body>
+</html>
